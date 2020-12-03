@@ -18,13 +18,41 @@ namespace DbfTests
             // TODO read all RelevantFileName files recursively from RootDir (will be copied on build)
             var files = GetFilePaths(RootDir, RelevantFileName);
             // use DbfReader to read them and extract all DataValues
-            // here an example call for one file:
             var reader = new DbfReader();
-            var values = reader.ReadValues(@".\Data\ELEKTRO\E01\E600DI01\128.dbf");
+            var valueRows = new List<List<DbfReader.ValueRow>>();
+            foreach (var file in files)
+            {
+                var values = reader.ReadValues(file);
+                valueRows.Add(values);
+                OutputRow.Headers.Add(file);
+            }
+
+            // here an example call for one file:
+            //var reader = new DbfReader();
+            //var values = reader.ReadValues(@".\Data\ELEKTRO\E01\E600DI01\128.dbf");
 
             // put all DataValues into ONE ordered (by timestamp) list of OutputRow (each timestamp shall exist only once, each file should be like a column)
             // the OutputRow has 2 lists: 1 static one for the headers (directory path of file) and one for the values (values of all files (same timestamp) must be merged into one OutputRow)
             var outputs = new List<OutputRow>();
+
+            var dict = new SortedDictionary<DateTime, OutputRow>();
+
+            for(int i = 0; i < valueRows.Count; ++i)
+            {
+                foreach (var value in valueRows[i])
+                {
+                    var exists = dict.TryGetValue(value.Timestamp, out var outputRow);
+                    if (!exists)
+                    {
+                        outputRow = new OutputRow();
+                        outputRow.Values.AddRange(new double?[27]);
+                        outputRow.Timestamp = value.Timestamp;
+                    }
+                    outputRow.Values[i] = value.Value;
+                    dict[value.Timestamp] = outputRow;
+                }
+            }
+            outputs.AddRange(dict.Values);
 
             // if there is time left, improve example where you think it isn't good enough
 
