@@ -13,9 +13,10 @@ namespace DbfTests
         public void TestTask()
         {
             const string RootDir = @".\Data";
-            const string RelevantFileName = "128.dbf";
+            const string RelevantFileName = "*128.dbf";
 
             // TODO read all RelevantFileName files recursively from RootDir (will be copied on build)
+            var files = GetFilePaths(RootDir, RelevantFileName);
             // use DbfReader to read them and extract all DataValues
             // here an example call for one file:
             var reader = new DbfReader();
@@ -42,6 +43,22 @@ namespace DbfTests
             string content = "Time\t" + string.Join("\t", OutputRow.Headers) + Environment.NewLine +
                           string.Join(Environment.NewLine, outputs.Select(o => o.AsTextLine()));
             File.WriteAllText(@".\output.txt", content);
+        }
+
+        private List<string> GetFilePaths(string dir, string filename)
+        {
+            var result = new List<string>();
+
+            var filesInCurrentDir = Directory.GetFiles(dir, filename);
+            result.AddRange(filesInCurrentDir);
+
+            var subDirs = Directory.GetDirectories(dir);
+            foreach(var subDir in subDirs)
+            {
+                var filesInSubDir = GetFilePaths(subDir, filename);
+                result.AddRange(filesInSubDir);
+            }
+            return result;
         }
     }
 }
