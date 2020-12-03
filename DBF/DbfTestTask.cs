@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace DbfTests
@@ -19,13 +20,19 @@ namespace DbfTests
             var files = GetFilePaths(RootDir, RelevantFileName);
             // use DbfReader to read them and extract all DataValues
             var reader = new DbfReader();
-            var valueRows = new List<List<DbfReader.ValueRow>>();
-            foreach (var file in files)
+            for (int i = 0; i < files.Count; ++i)
             {
-                var values = reader.ReadValues(file);
-                valueRows.Add(values);
-                OutputRow.Headers.Add(file);
+                OutputRow.Headers.Add(files[i]);
             }
+
+            var valueRows = new List<DbfReader.ValueRow>[files.Count];
+            Parallel.ForEach(files, (currentFile) =>
+            {
+                var currentReader = new DbfReader();
+                var values = currentReader.ReadValues(currentFile);
+                valueRows[files.IndexOf(currentFile)] = values;
+            });
+
 
             // here an example call for one file:
             //var reader = new DbfReader();
@@ -37,7 +44,7 @@ namespace DbfTests
 
             var dict = new SortedDictionary<DateTime, OutputRow>();
 
-            for(int i = 0; i < valueRows.Count; ++i)
+            for(int i = 0; i < valueRows.Length; ++i)
             {
                 foreach (var value in valueRows[i])
                 {
